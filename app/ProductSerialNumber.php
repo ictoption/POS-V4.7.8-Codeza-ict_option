@@ -6,5 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProductSerialNumber extends Model
 {
-    protected $guarded = ['id'];
+    protected $table = 'product_serial_numbers';
+    protected $guarded = [];
 }

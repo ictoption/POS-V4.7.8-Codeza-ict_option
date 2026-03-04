@@ -616,7 +616,7 @@ class SellPosController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
-            $msg = trans("messages.something_went_wrong");
+            $msg = trans("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
                 
             if (get_class($e) == \App\Exceptions\PurchaseSellMismatch::class) {
                 $msg = $e->getMessage();
@@ -1644,11 +1644,12 @@ class SellPosController extends Controller
             ->where('serial_number', $serial)
             ->where('status', 'available');
 
-        if (!empty($variation_id)) {
-            $query->where('variation_id', $variation_id);
-        }
+        // if (!is_null($variation_id) || $variation_id !== '3') {
+        //     $query->where('variation_id', $variation_id);
+        // }
 
         $serial_number = $query->first();
+        // dd($serial_number);
 
         if (empty($serial_number)) {
             return response()->json(['success' => 0, 'msg' => 'Serial number is not available.']);
@@ -1736,9 +1737,9 @@ class SellPosController extends Controller
                 ->where('variation_id', $product['variation_id'])
                 ->get();
 
-            if ($serial_records->count() !== count($serial_ids)) {
-                throw new \Exception('Invalid serial numbers selected.');
-            }
+            // if ($serial_records->count() !== count($serial_ids)) {
+            //     throw new \Exception('Invalid serial numbers selected.');
+            // }
 
             foreach ($serial_records as $serial_record) {
                 if ($serial_record->status === 'sold' && (int) $serial_record->sold_sell_line_id !== $sell_line_id) {

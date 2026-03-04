@@ -16,7 +16,7 @@
         </div>
         <div class="col-md-4">
           {!! Form::label('variation_id', 'Variation:') !!}
-          {!! Form::select('variation_id', ['' => 'Default'] + $variations->toArray(), old('variation_id'), ['class' => 'form-control select2', 'id' => 'variation_id']) !!}
+          {!! Form::select('variation_id', ['' => 'Default'] + collect($variations)->toArray(), old('variation_id'), ['class' => 'form-control select2', 'id' => 'variation_id']) !!}
         </div>
       </div>
 

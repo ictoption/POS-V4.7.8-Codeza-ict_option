@@ -65,7 +65,7 @@ class ProductSerialNumberController extends Controller
             'barcode_font' => 0,
         ];
 
-        $variations = [];
+        $variations = collect();
         if (!empty(old('product_id'))) {
             $this_product = Product::where('business_id', $business_id)->find(old('product_id'));
             if (!empty($this_product)) {
@@ -199,7 +199,7 @@ class ProductSerialNumberController extends Controller
             DB::rollBack();
             \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
 
-            return redirect()->back()->with('status', ['success' => 0, 'msg' => "File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage()]);
+            return redirect()->back()->with('status', ['success' => 0, 'msg' => __('messages.something_went_wrong')]);
         }
     }
 

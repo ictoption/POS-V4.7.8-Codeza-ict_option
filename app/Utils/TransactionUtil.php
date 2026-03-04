@@ -2491,7 +2491,7 @@ class TransactionUtil extends Util
                         );
         
         //Check for permitted locations of a user
-        $permitted_locations = auth()->user()->permitted_locations();
+        $permitted_locations = $this->getAuthUserPermittedLocations();
         if ($permitted_locations != 'all') {
             $query->whereIn('transactions.location_id', $permitted_locations);
         }
@@ -2551,7 +2551,7 @@ class TransactionUtil extends Util
                     );
 
         //Check for permitted locations of a user
-        $permitted_locations = auth()->user()->permitted_locations();
+        $permitted_locations = $this->getAuthUserPermittedLocations();
         if ($permitted_locations != 'all') {
             $query->whereIn('transactions.location_id', $permitted_locations);
         }
@@ -2650,7 +2650,7 @@ class TransactionUtil extends Util
                         );
 
         //Check for permitted locations of a user
-        $permitted_locations = auth()->user()->permitted_locations();
+        $permitted_locations = $this->getAuthUserPermittedLocations();
         if ($permitted_locations != 'all') {
             $query1->whereIn('transactions.location_id', $permitted_locations);
             $query2->whereIn('transactions.location_id', $permitted_locations);
@@ -2753,7 +2753,7 @@ class TransactionUtil extends Util
                         );
 
         ///Check for permitted locations of a user
-        $permitted_locations = auth()->user()->permitted_locations();
+        $permitted_locations = $this->getAuthUserPermittedLocations();
         if ($permitted_locations != 'all') {
             $query1->whereIn('transactions.location_id', $permitted_locations);
             $query2->whereIn('transactions.location_id', $permitted_locations);
@@ -2841,7 +2841,7 @@ class TransactionUtil extends Util
                         );
 
         //Check for permitted locations of a user
-        $permitted_locations = auth()->user()->permitted_locations();
+        $permitted_locations = $this->getAuthUserPermittedLocations();
         if ($permitted_locations != 'all') {
             $query->whereIn('transactions.location_id', $permitted_locations);
         }
@@ -2906,7 +2906,7 @@ class TransactionUtil extends Util
                             ->whereBetween('transactions.transaction_date', [$start, $end]);
 
         //Check for permitted locations of a user
-        $permitted_locations = auth()->user()->permitted_locations();
+        $permitted_locations = $this->getAuthUserPermittedLocations();
         if ($permitted_locations != 'all') {
             $query->whereIn('transactions.location_id', $permitted_locations);
         }
@@ -2942,7 +2942,7 @@ class TransactionUtil extends Util
                             ->whereIn('type', ['expense', 'expense_refund']);
         // ->where('payment_status', 'paid');
 
-        $permitted_locations = auth()->user()->permitted_locations();
+        $permitted_locations = $this->getAuthUserPermittedLocations();
         if ($permitted_locations != 'all') {
             $query->whereIn('transactions.location_id', $permitted_locations);
         }
@@ -3876,7 +3876,7 @@ class TransactionUtil extends Util
         );
 
         //Check for permitted locations of a user
-        $permitted_locations = auth()->user()->permitted_locations();
+        $permitted_locations = $this->getAuthUserPermittedLocations();
         if ($permitted_locations != 'all') {
             $query->whereIn('purchase.location_id', $permitted_locations);
         }
@@ -3910,7 +3910,7 @@ class TransactionUtil extends Util
                             ->select(DB::raw("SUM( (transaction_sell_lines.quantity - transaction_sell_lines.quantity_returned) * transaction_sell_lines.unit_price ) as final_total"));
 
         //Check for permitted locations of a user
-        $permitted_locations = auth()->user()->permitted_locations();
+        $permitted_locations = $this->getAuthUserPermittedLocations();
         if ($permitted_locations != 'all') {
             $query->whereIn('t.location_id', $permitted_locations);
         }
@@ -3945,7 +3945,7 @@ class TransactionUtil extends Util
                             ->select(DB::raw('SUM(IF( is_return = 0, amount, amount*-1)) as total_paid'));
 
         //Check for permitted locations of a user
-        $permitted_locations = auth()->user()->permitted_locations();
+        $permitted_locations = $this->getAuthUserPermittedLocations();
         if ($permitted_locations != 'all') {
             $query->whereIn('t.location_id', $permitted_locations);
         }
@@ -4444,7 +4444,7 @@ class TransactionUtil extends Util
         $query = Transaction::where('transactions.business_id', $business_id);
         
         //Check for permitted locations of a user
-        $permitted_locations = auth()->user()->permitted_locations();
+        $permitted_locations = $this->getAuthUserPermittedLocations();
         if ($permitted_locations != 'all') {
             //if payroll check employees's work location
             if (in_array('payroll', $transaction_types)) {
@@ -4654,7 +4654,7 @@ class TransactionUtil extends Util
             $query->whereDate('sale.transaction_date', $end_date);
         }
 
-        $permitted_locations = auth()->user()->permitted_locations();
+        $permitted_locations = $this->getAuthUserPermittedLocations();
         if ($permitted_locations != 'all') {
             $query->whereIn('sale.location_id', $permitted_locations);
         }

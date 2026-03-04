@@ -48,24 +48,9 @@ class ProductSerialNumberController extends Controller
             ->where('enable_sr_no', 1)
             ->pluck('name', 'id');
 
-        $barcode_types = ['CODE128' => 'CODE128'];
+        $barcode_types = app('App\Utils\Util')->barcode_types();
 
-        $settings = [
-            'paper_width_mm' => 76,
-            'label_width_mm' => 25,
-            'label_height_mm' => 12,
-            'label_position' => 'RIGHT',
-            'x_offset_mm' => 0,
-            'y_offset_mm' => 0,
-            'gap_mm' => 2,
-            'copies' => 1,
-            'barcode_format' => 'CODE128',
-            'barcode_height_mm' => 6.5,
-            'barcode_margin_mm' => 0,
-            'barcode_font' => 0,
-        ];
-
-        return view('product_serial_number.create', compact('products', 'barcode_types', 'settings'));
+        return view('product_serial_number.create', compact('products', 'barcode_types'));
     }
 
     public function getProductVariations(Request $request)
@@ -90,27 +75,18 @@ class ProductSerialNumberController extends Controller
         $input = $request->validate([
             'product_id' => 'required|integer',
             'variation_id' => 'nullable|integer',
-            'prefix' => 'nullable|string|max:30',
+            'prefix' => 'nullable|string|max:100',
             'middle_fix' => 'nullable|string|max:100',
             'post_fix' => 'nullable|string|max:100',
-            'separator' => 'nullable|string|max:3',
             'start_from' => 'required|integer|min:1',
-            'quantity' => 'required|integer|min:1|max:2000',
-            'number_padding' => 'required|integer|min:0|max:12',
-
-            'paper_width_mm' => 'required|numeric|min:40|max:80',
-            'label_width_mm' => 'required|numeric|min:10|max:76',
-            'label_height_mm' => 'required|numeric|min:8|max:40',
-            'label_position' => 'required|in:RIGHT,LEFT,CENTER',
-            'x_offset_mm' => 'required|numeric|min:-30|max:30',
-            'y_offset_mm' => 'required|numeric|min:-30|max:30',
-            'gap_mm' => 'required|numeric|min:0|max:10',
-            'copies' => 'required|integer|min:1|max:10',
-
-            'barcode_format' => 'required|in:CODE128',
-            'barcode_height_mm' => 'required|numeric|min:3|max:10',
-            'barcode_margin_mm' => 'required|numeric|min:0|max:2',
-            'barcode_font' => 'required|in:0,1',
+            'quantity' => 'required|integer|min:1',
+            'number_padding' => 'required|integer|min:1|max:12',
+            'barcode_type' => 'required|string|max:20',
+            'sticker_width' => 'required|numeric|min:0.1',
+            'sticker_height' => 'required|numeric|min:0.1',
+            'label_width' => 'required|numeric|min:0.1',
+            'label_height' => 'required|numeric|min:0.1',
+            'labels_in_row' => 'required|integer|min:1|max:10',
         ]);
 
         $business_id = $request->session()->get('user.business_id');
@@ -124,44 +100,22 @@ class ProductSerialNumberController extends Controller
                 'prefix' => $input['prefix'] ?? null,
                 'middle_fix' => $input['middle_fix'] ?? null,
                 'post_fix' => $input['post_fix'] ?? null,
-                'separator' => $input['separator'] ?? '-',
                 'start_from' => $input['start_from'],
                 'quantity' => $input['quantity'],
                 'number_padding' => $input['number_padding'],
-                'barcode_type' => $input['barcode_format'],
-                'paper_width_mm' => $input['paper_width_mm'],
-                'sticker_width' => $input['label_width_mm'],
-                'sticker_height' => $input['label_height_mm'],
-                'label_width' => $input['label_width_mm'],
-                'label_height' => $input['label_height_mm'],
-                'labels_in_row' => 1,
-                'label_position' => $input['label_position'],
-                'x_offset_mm' => $input['x_offset_mm'],
-                'y_offset_mm' => $input['y_offset_mm'],
-                'gap_mm' => $input['gap_mm'],
-                'copies' => $input['copies'],
-                'barcode_height_mm' => $input['barcode_height_mm'],
-                'barcode_margin_mm' => $input['barcode_margin_mm'],
-                'barcode_font' => $input['barcode_font'],
+                'barcode_type' => $input['barcode_type'],
+                'sticker_width' => $input['sticker_width'],
+                'sticker_height' => $input['sticker_height'],
+                'label_width' => $input['label_width'],
+                'label_height' => $input['label_height'],
+                'labels_in_row' => $input['labels_in_row'],
                 'created_by' => $request->session()->get('user.id'),
             ]);
 
             $generated_count = 0;
             for ($i = 0; $i < $input['quantity']; $i++) {
-                $number = str_pad((string) ($input['start_from'] + $i), $input['number_padding'], '0', STR_PAD_LEFT);
-
-                $serial = $number;
-                if (!empty($input['prefix'])) {
-                    $serial = $input['prefix'] . ($input['separator'] ?? '-') . $number;
-                }
-                if (!empty($input['middle_fix'])) {
-                    $serial = $input['middle_fix'] . $serial;
-                }
-                if (!empty($input['post_fix'])) {
-                    $serial .= $input['post_fix'];
-                }
-
-                $serial = mb_substr($serial, 0, 60);
+                $number = str_pad($input['start_from'] + $i, $input['number_padding'], '0', STR_PAD_LEFT);
+                $serial = ($input['prefix'] ?? '') . ($input['middle_fix'] ?? '') . $number . ($input['post_fix'] ?? '');
 
                 if (!ProductSerialNumber::where('serial_number', $serial)->exists()) {
                     ProductSerialNumber::create([
@@ -200,25 +154,8 @@ class ProductSerialNumberController extends Controller
 
         $business_id = request()->session()->get('user.business_id');
         $generation = ProductSerialNumberGeneration::where('business_id', $business_id)->findOrFail($id);
-        $serial_numbers = ProductSerialNumber::where('generation_id', $id)->orderBy('serial_order')->pluck('serial_number')->toArray();
+        $serial_numbers = ProductSerialNumber::where('generation_id', $id)->orderBy('serial_order')->get();
 
-        $paperW = (float) ($generation->paper_width_mm ?? 76);
-        $labelW = (float) ($generation->sticker_width ?? 25);
-
-        if ($generation->label_position === 'LEFT') {
-            $left = 0;
-        } elseif ($generation->label_position === 'CENTER') {
-            $left = max(0, ($paperW - $labelW) / 2);
-        } else {
-            $left = max(0, $paperW - $labelW);
-        }
-
-        $left = max(0, $left + (float) $generation->x_offset_mm);
-
-        return view('product_serial_number.print', [
-            'serials' => $serial_numbers,
-            'generation' => $generation,
-            'label_left_mm' => $left,
-        ]);
+        return view('product_serial_number.print', compact('generation', 'serial_numbers'));
     }
 }

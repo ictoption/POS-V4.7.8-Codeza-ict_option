@@ -1106,6 +1106,8 @@ $(document).ready(function() {
         var labels = list.data('labels') || [];
         var id_arr = ids ? ids.split(',').filter(Boolean) : [];
         row.find('.serial-number-count').text(id_arr.length);
+        var qty = parseInt(__read_number(row.find('.pos_quantity')) || 0);
+        row.find('.serial-required-count').text(qty);
 
         if (!id_arr.length || !labels.length) {
             list.html('');
@@ -1195,7 +1197,8 @@ $(document).ready(function() {
         $.get('/sells/pos/get-available-serial-number', {
             serial_number: serial_text,
             product_id: modal.data('product_id'),
-            variation_id: modal.data('variation_id')
+            variation_id: modal.data('variation_id'),
+            location_id: $('input#location_id').val()
         }, function(resp) {
             if (!resp.success) {
                 toastr.error(resp.msg);

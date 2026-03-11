@@ -18,6 +18,10 @@
           {!! Form::label('variation_id', 'Variation:') !!}
           {!! Form::select('variation_id', ['' => 'Default'] + collect($variations)->toArray(), old('variation_id'), ['class' => 'form-control select2', 'id' => 'variation_id']) !!}
         </div>
+        <div class="col-md-4">
+          {!! Form::label('location_id', 'Location:*') !!}
+          {!! Form::select('location_id', $business_locations, old('location_id'), ['class' => 'form-control select2', 'required', 'placeholder' => __('messages.please_select')]) !!}
+        </div>
       </div>
 
       <hr>

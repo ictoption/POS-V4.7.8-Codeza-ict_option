@@ -6,6 +6,7 @@ use App\Product;
 use App\ProductSerialNumber;
 use App\ProductSerialNumberGeneration;
 use App\Variation;
+use App\BusinessLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -19,14 +20,19 @@ class ProductSerialNumberController extends Controller
 
         $business_id = $request->session()->get('user.business_id');
         $products = Product::where('business_id', $business_id)->pluck('name', 'id');
+        $locations = BusinessLocation::forDropdown($business_id);
 
         $query = ProductSerialNumber::leftJoin('products as p', 'product_serial_numbers.product_id', '=', 'p.id')
             ->leftJoin('variations as v', 'product_serial_numbers.variation_id', '=', 'v.id')
+            ->leftJoin('business_locations as bl', 'product_serial_numbers.location_id', '=', 'bl.id')
             ->where('product_serial_numbers.business_id', $business_id)
-            ->select('product_serial_numbers.*', 'p.name as product_name', 'v.name as variation_name');
+            ->select('product_serial_numbers.*', 'p.name as product_name', 'v.name as variation_name', 'bl.name as location_name');
 
         if (!empty($request->product_id)) {
             $query->where('product_serial_numbers.product_id', $request->product_id);
+        }
+        if (!empty($request->location_id)) {
+            $query->where('product_serial_numbers.location_id', $request->location_id);
         }
         if (!empty($request->status)) {
             $query->where('product_serial_numbers.status', $request->status);
@@ -34,7 +40,7 @@ class ProductSerialNumberController extends Controller
 
         $serial_numbers = $query->orderBy('product_serial_numbers.id', 'desc')->paginate(50);
 
-        return view('product_serial_number.index', compact('serial_numbers', 'products'));
+        return view('product_serial_number.index', compact('serial_numbers', 'products', 'locations'));
     }
 
     public function create(Request $request)
@@ -49,6 +55,8 @@ class ProductSerialNumberController extends Controller
             ->pluck('name', 'id');
 
         $barcode_types = ['CODE128' => 'CODE128'];
+
+        $business_locations = BusinessLocation::forDropdown($business_id);
 
         $settings = [
             'paper_width_mm' => 76,
@@ -76,7 +84,7 @@ class ProductSerialNumberController extends Controller
             }
         }
 
-        return view('product_serial_number.create', compact('products', 'barcode_types', 'settings', 'variations'));
+        return view('product_serial_number.create', compact('products', 'barcode_types', 'settings', 'variations', 'business_locations'));
     }
 
     public function getProductVariations(Request $request)
@@ -101,6 +109,7 @@ class ProductSerialNumberController extends Controller
         $input = $request->validate([
             'product_id' => 'required|integer',
             'variation_id' => 'nullable|integer',
+            'location_id' => 'required|integer',
             'prefix' => 'nullable|string|max:30',
             'middle_fix' => 'nullable|string|max:100',
             'post_fix' => 'nullable|string|max:100',
@@ -177,6 +186,7 @@ class ProductSerialNumberController extends Controller
                 if (!ProductSerialNumber::where('serial_number', $serial)->exists()) {
                     ProductSerialNumber::create([
                         'business_id' => $business_id,
+                        'location_id' => $input['location_id'],
                         'product_id' => $input['product_id'],
                         'variation_id' => $input['variation_id'] ?? null,
                         'generation_id' => $generation->id,
@@ -199,7 +209,7 @@ class ProductSerialNumberController extends Controller
             DB::rollBack();
             \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
 
-            return redirect()->back()->with('status', ['success' => 0, 'msg' => "File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage()]);
+            return redirect()->back()->with('status', ['success' => 0, 'msg' => __('messages.something_went_wrong')]);
         }
     }
 

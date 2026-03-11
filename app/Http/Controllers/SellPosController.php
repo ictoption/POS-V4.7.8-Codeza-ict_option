@@ -1634,6 +1634,7 @@ class SellPosController extends Controller
         $serial = trim($request->get('serial_number'));
         $product_id = $request->get('product_id');
         $variation_id = $request->get('variation_id');
+        $location_id = $request->get('location_id');
 
         if (empty($serial) || empty($product_id)) {
             return response()->json(['success' => 0, 'msg' => 'Invalid serial number request.']);
@@ -1644,9 +1645,13 @@ class SellPosController extends Controller
             ->where('serial_number', $serial)
             ->where('status', 'available');
 
-        // if (!empty($variation_id)) {
-        //     $query->where('variation_id', $variation_id);
-        // }
+        if (!empty($location_id)) {
+            $query->where('location_id', $location_id);
+        }
+
+        if (!empty($variation_id)) {
+            $query->where('variation_id', $variation_id);
+        }
 
         $serial_number = $query->first();
 
@@ -1732,13 +1737,14 @@ class SellPosController extends Controller
 
             $serial_records = ProductSerialNumber::whereIn('id', $serial_ids)
                 ->where('business_id', $business_id)
+                ->where('location_id', $transaction->location_id)
                 ->where('product_id', $product['product_id'])
                 ->where('variation_id', $product['variation_id'])
                 ->get();
 
-            // if ($serial_records->count() !== count($serial_ids)) {
-            //     throw new \Exception('Invalid serial numbers selected.');
-            // }
+            if ($serial_records->count() !== count($serial_ids)) {
+                throw new \Exception('Invalid serial numbers selected.');
+            }
 
             foreach ($serial_records as $serial_record) {
                 if ($serial_record->status === 'sold' && (int) $serial_record->sold_sell_line_id !== $sell_line_id) {

@@ -285,7 +285,7 @@ class SellReturnController extends Controller
 
                 $sell_return =  $this->transactionUtil->addSellReturn($input, $business_id, $user_id);
 
-                $this->syncReturnedSerialNumbers($business_id, $input['transaction_id']);
+                $this->syncReturnedSerialNumbers($business_id, $input['transaction_id'], $input['products'], $request->input('return_type', 'exchange'));
 
                 $receipt = $this->receiptContent($business_id, $sell_return->location_id, $sell_return->id);
                 
@@ -314,7 +314,7 @@ class SellReturnController extends Controller
         return $output;
     }
 
-    private function syncReturnedSerialNumbers($business_id, $sell_transaction_id)
+    private function syncReturnedSerialNumbers($business_id, $sell_transaction_id, $products = [], $return_type = 'exchange')
     {
         $common_settings = request()->session()->get('business.common_settings', []);
         if (empty($common_settings['enable_serial_number_manage'])) {
@@ -325,6 +325,8 @@ class SellReturnController extends Controller
             ->whereNull('parent_sell_line_id')
             ->get();
 
+        $product_map = collect($products)->keyBy('sell_line_id');
+
         foreach ($sell_lines as $sell_line) {
             $serial_maps = SellLineSerialNumber::where('sell_line_id', $sell_line->id)
                 ->orderBy('id')
@@ -334,25 +336,67 @@ class SellReturnController extends Controller
                 continue;
             }
 
-            $returned_qty = (int) floor($sell_line->quantity_returned);
-            $to_make_available = $serial_maps->take($returned_qty)->pluck('product_serial_number_id')->toArray();
-            $to_keep_sold = $serial_maps->slice($returned_qty)->pluck('product_serial_number_id')->toArray();
-
-            if (!empty($to_make_available)) {
-                ProductSerialNumber::whereIn('id', $to_make_available)->update([
-                    'status' => 'available',
-                    'sold_transaction_id' => null,
-                    'sold_sell_line_id' => null,
-                    'sold_at' => null,
-                ]);
+            $selected_serials = [];
+            if (!empty($product_map[$sell_line->id]['returned_serial_numbers'])) {
+                $selected_serials = preg_split('/[\n,]+/', $product_map[$sell_line->id]['returned_serial_numbers']);
+                $selected_serials = array_values(array_unique(array_filter(array_map('trim', $selected_serials))));
             }
 
-            if (!empty($to_keep_sold)) {
-                ProductSerialNumber::whereIn('id', $to_keep_sold)->update([
-                    'status' => 'sold',
-                    'sold_transaction_id' => $sell_transaction_id,
-                    'sold_sell_line_id' => $sell_line->id,
-                ]);
+            if (!empty($selected_serials)) {
+                $returned_qty = (int) floor($sell_line->quantity_returned);
+                if ($returned_qty !== count($selected_serials)) {
+                    throw new \Exception('Returned serial numbers count must match return quantity.');
+                }
+
+                $line_serials = $serial_maps->pluck('serial_number')->toArray();
+                foreach ($selected_serials as $serial_no) {
+                    if (!in_array($serial_no, $line_serials)) {
+                        throw new \Exception('Invalid returned serial number selected.');
+                    }
+                }
+
+                $serial_ids = ProductSerialNumber::where('business_id', $business_id)
+                    ->whereIn('serial_number', $selected_serials)
+                    ->pluck('id')
+                    ->toArray();
+
+                if ($return_type === 'damaged') {
+                    ProductSerialNumber::whereIn('id', $serial_ids)->update([
+                        'status' => 'damaged',
+                        'sold_transaction_id' => null,
+                        'sold_sell_line_id' => null,
+                    ]);
+                } else {
+                    ProductSerialNumber::whereIn('id', $serial_ids)->update([
+                        'status' => 'available',
+                        'sold_transaction_id' => null,
+                        'sold_sell_line_id' => null,
+                        'sold_at' => null,
+                    ]);
+                }
+            } else {
+                //Fallback quantity-based behavior when no explicit serials provided.
+                $returned_qty = (int) floor($sell_line->quantity_returned);
+                $to_make_available = $serial_maps->take($returned_qty)->pluck('product_serial_number_id')->toArray();
+                $to_keep_sold = $serial_maps->slice($returned_qty)->pluck('product_serial_number_id')->toArray();
+
+                if (!empty($to_make_available)) {
+                    $update_data = [
+                        'sold_transaction_id' => null,
+                        'sold_sell_line_id' => null,
+                        'sold_at' => null,
+                    ];
+                    $update_data['status'] = $return_type === 'damaged' ? 'damaged' : 'available';
+                    ProductSerialNumber::whereIn('id', $to_make_available)->update($update_data);
+                }
+
+                if (!empty($to_keep_sold)) {
+                    ProductSerialNumber::whereIn('id', $to_keep_sold)->update([
+                        'status' => 'sold',
+                        'sold_transaction_id' => $sell_transaction_id,
+                        'sold_sell_line_id' => $sell_line->id,
+                    ]);
+                }
             }
         }
     }
@@ -480,7 +524,7 @@ class SellReturnController extends Controller
                         }
                     }
 
-                    $this->syncReturnedSerialNumbers($business_id, $sell_return->return_parent_id);
+                    $this->syncReturnedSerialNumbers($business_id, $sell_return->return_parent_id, [], 'exchange');
 
                     $sell_return->delete();
                     foreach ($transaction_payments as $payment) {

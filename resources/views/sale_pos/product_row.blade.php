@@ -184,7 +184,7 @@
 		<input type="hidden" class="selected_serial_numbers" name="products[{{$row_count}}][selected_serial_numbers]" value="{{implode(',', $selected_serial_numbers)}}">
 		<input type="hidden" class="serial_product_id" value="{{$product->product_id}}">
 		<input type="hidden" class="serial_variation_id" value="{{$product->variation_id}}">
-		<button type="button" class="btn btn-xs btn-primary add-serial-numbers">Add Serial Numbers (<span class="serial-number-count">{{count($selected_serial_numbers)}}</span>)</button>
+		<button type="button" class="btn btn-xs btn-primary add-serial-numbers">Add Serial Numbers (<span class="serial-number-count">{{count($selected_serial_numbers)}}</span> / <span class="serial-required-count">{{(int) $product->quantity_ordered}}</span>)</button>
 		<div class="selected-serial-numbers-list" data-labels='@json($selected_serial_labels)' data-ids='@json($selected_serial_numbers)'></div>
 	@endif
 	</td>

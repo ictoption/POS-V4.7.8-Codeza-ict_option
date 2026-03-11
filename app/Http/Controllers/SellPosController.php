@@ -1686,26 +1686,40 @@ class SellPosController extends Controller
             }
         }
 
-        $existing_input_line_ids = collect($products)->pluck('transaction_sell_lines_id')->filter()->map(function ($id) {
-            return (int) $id;
-        })->toArray();
-
         $current_lines = TransactionSellLine::where('transaction_id', $transaction->id)
             ->whereNull('parent_sell_line_id')
             ->orderBy('id')
             ->get();
 
-        $new_lines = $current_lines->whereNotIn('id', $existing_input_line_ids)->values();
-        $new_line_index = 0;
+        $used_line_ids = [];
 
         foreach ($products as $product) {
-            $sell_line_id = !empty($product['transaction_sell_lines_id'])
-                ? (int) $product['transaction_sell_lines_id']
-                : (!empty($new_lines[$new_line_index]) ? $new_lines[$new_line_index++]->id : null);
+            $sell_line_id = !empty($product['transaction_sell_lines_id']) ? (int) $product['transaction_sell_lines_id'] : null;
+
+            if (empty($sell_line_id)) {
+                $candidate_line = $current_lines->first(function ($line) use ($product, $used_line_ids) {
+                    if (in_array((int) $line->id, $used_line_ids, true)) {
+                        return false;
+                    }
+
+                    return (int) $line->product_id === (int) ($product['product_id'] ?? 0)
+                        && (int) $line->variation_id === (int) ($product['variation_id'] ?? 0);
+                });
+
+                if (empty($candidate_line)) {
+                    $candidate_line = $current_lines->first(function ($line) use ($used_line_ids) {
+                        return !in_array((int) $line->id, $used_line_ids, true);
+                    });
+                }
+
+                $sell_line_id = !empty($candidate_line) ? (int) $candidate_line->id : null;
+            }
 
             if (empty($sell_line_id)) {
                 continue;
             }
+
+            $used_line_ids[] = $sell_line_id;
 
             $serial_ids = [];
             if (!empty($product['selected_serial_numbers'])) {

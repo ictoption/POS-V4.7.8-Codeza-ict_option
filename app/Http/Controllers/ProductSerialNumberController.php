@@ -247,6 +247,51 @@ class ProductSerialNumberController extends Controller
         }
     }
 
+
+    public function destroy(Request $request, $id)
+    {
+        if (!auth()->user()->can('product.delete')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+
+        DB::beginTransaction();
+        try {
+            $serial = ProductSerialNumber::where('business_id', $business_id)->findOrFail($id);
+
+            if ($serial->status !== 'available') {
+                return redirect()->back()->with('status', [
+                    'success' => 0,
+                    'msg' => 'Only available serial numbers can be deleted.',
+                ]);
+            }
+
+            $generation_id = $serial->generation_id;
+            $serial->delete();
+
+            if (!empty($generation_id)) {
+                $available_count = ProductSerialNumber::where('generation_id', $generation_id)->count();
+                ProductSerialNumberGeneration::where('id', $generation_id)->update(['generated_count' => $available_count]);
+            }
+
+            DB::commit();
+
+            return redirect()->back()->with('status', [
+                'success' => 1,
+                'msg' => 'Serial number deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
+
+            return redirect()->back()->with('status', [
+                'success' => 0,
+                'msg' => __('messages.something_went_wrong'),
+            ]);
+        }
+    }
+
     public function printPreview(Request $request)
     {
         $preview = $request->session()->get('generated_serial_preview');

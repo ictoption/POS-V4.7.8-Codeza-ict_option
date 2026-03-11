@@ -27,7 +27,7 @@
 
     @component('components.widget', ['class' => 'box-primary'])
     <table class="table table-bordered table-striped">
-        <thead><tr><th>#</th><th>Product</th><th>Location</th><th>Serial Number</th><th>Status</th><th>Sold Invoice</th></tr></thead>
+        <thead><tr><th>#</th><th>Product</th><th>Location</th><th>Serial Number</th><th>Status</th><th>Sold Invoice</th><th>Action</th></tr></thead>
         <tbody>
             @foreach($serial_numbers as $row)
             <tr>
@@ -35,8 +35,17 @@
                 <td>{{$row->product_name}} @if(!empty($row->variation_name)) - {{$row->variation_name}} @endif</td>
                 <td>{{$row->location_name}}</td>
                 <td>{{$row->serial_number}}</td>
-                <td><span class="label @if($row->status == 'sold') bg-red @else bg-green @endif">{{$row->status}}</span></td>
+                <td><span class="label @if($row->status == 'sold') bg-red @elseif($row->status == 'damaged') bg-yellow @else bg-green @endif">{{$row->status}}</span></td>
                 <td>{{$row->sold_transaction_id}}</td>
+                <td>
+                    @if($row->status === 'available')
+                        {!! Form::open(['url' => action('ProductSerialNumberController@destroy', [$row->id]), 'method' => 'delete', 'style' => 'display:inline-block']) !!}
+                            <button type="submit" class="btn btn-xs btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+                        {!! Form::close() !!}
+                    @else
+                        <span class="text-muted">-</span>
+                    @endif
+                </td>
             </tr>
             @endforeach
         </tbody>

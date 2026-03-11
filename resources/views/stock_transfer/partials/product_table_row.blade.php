@@ -12,12 +12,13 @@
 
         @if(!empty($product->enable_sr_no) && !empty(session('business.common_settings')['enable_serial_number_manage']))
             <br>
-            <small class="text-muted serial-required-label">Required serials: <span class="required-serial-count">1</span></small>
             <input type="hidden" class="serial_enabled" value="1">
             <input type="hidden" class="serial_product_id" value="{{$product->product_id}}">
             <input type="hidden" class="serial_variation_id" value="{{$product->variation_id}}">
-            <textarea class="form-control input-sm stock-transfer-serial-input" rows="2" name="products[{{$row_index}}][selected_serial_numbers]" placeholder="Scan/add serial numbers, separated by comma or new line">{{!empty($product->selected_serial_numbers_csv) ? $product->selected_serial_numbers_csv : ''}}</textarea>
-            <small class="help-block">Available serials are validated from selected From Location.</small>
+            <input type="hidden" class="stock-transfer-serial-input" name="products[{{$row_index}}][selected_serial_numbers]" value="{{!empty($product->selected_serial_numbers_csv) ? $product->selected_serial_numbers_csv : ''}}">
+            <button type="button" class="btn btn-xs btn-primary add-transfer-serial-numbers">Add Serial Numbers (<span class="serial-number-count">0</span>/<span class="required-serial-count">1</span>)</button>
+            <div class="selected-transfer-serial-numbers-list"></div>
+            <small class="help-block">Scan/select available serials from source location.</small>
         @endif
 
             @if( session()->get('business.enable_lot_number') == 1 || session()->get('business.enable_product_expiry') == 1)

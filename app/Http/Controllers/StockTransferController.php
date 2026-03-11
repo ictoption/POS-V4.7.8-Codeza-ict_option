@@ -226,7 +226,9 @@ class StockTransferController extends Controller
             $purchase_lines = [];
 
             if (!empty($products)) {
-                foreach ($products as $product) {
+                $used_sell_line_ids = [];
+
+        foreach ($products as $product) {
                     $sell_line_arr = [
                                 'product_id' => $product['product_id'],
                                 'variation_id' => $product['variation_id'],
@@ -390,6 +392,7 @@ class StockTransferController extends Controller
         }
 
         $sell_lines = $sell_transfer->sell_lines()->whereNull('parent_sell_line_id')->get();
+        $used_sell_line_ids = [];
 
         foreach ($products as $product) {
             if (empty($product['selected_serial_numbers'])) {
@@ -403,8 +406,7 @@ class StockTransferController extends Controller
             $multiplier = !empty($product['base_unit_multiplier']) ? $product['base_unit_multiplier'] : 1;
             $required_count = (int) round($line_qty * $multiplier);
 
-            $serials = preg_split('/[
-,]+/', $product['selected_serial_numbers']);
+            $serials = preg_split('/[\n,]+/', $product['selected_serial_numbers']);
             $serials = array_values(array_unique(array_filter(array_map('trim', $serials))));
 
             if ($required_count !== count($serials)) {
@@ -414,7 +416,6 @@ class StockTransferController extends Controller
             $records = ProductSerialNumber::where('business_id', $business_id)
                 ->where('location_id', $sell_transfer->location_id)
                 ->where('product_id', $product['product_id'])
-                ->where('variation_id', $product['variation_id'])
                 ->where('status', 'available')
                 ->whereIn('serial_number', $serials)
                 ->get();
@@ -423,9 +424,17 @@ class StockTransferController extends Controller
                 throw new \Exception('One or more transfer serial numbers are invalid or unavailable in source location.');
             }
 
-            $sell_line = $sell_lines->first(function ($line) use ($product) {
-                return (int) $line->product_id === (int) $product['product_id'] && (int) $line->variation_id === (int) $product['variation_id'];
+            $sell_line = $sell_lines->first(function ($line) use ($product, $used_sell_line_ids) {
+                if (in_array((int) $line->id, $used_sell_line_ids, true)) {
+                    return false;
+                }
+
+                return (int) $line->product_id === (int) $product['product_id'];
             });
+
+            if (!empty($sell_line)) {
+                $used_sell_line_ids[] = (int) $sell_line->id;
+            }
 
             foreach ($records as $record) {
                 StockTransferSerialNumber::create([

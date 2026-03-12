@@ -6,7 +6,7 @@
 <section class="content">
   <div class="box box-primary">
     <div class="box-body">
-      {!! Form::open(['url' => action('ProductSerialNumberController@store'), 'method' => 'post']) !!}
+      {!! Form::open(['url' => action('ProductSerialNumberController@store'), 'method' => 'post', 'id' => 'serial_generate_form', 'autocomplete' => 'off']) !!}
 
       <h4>Product</h4>
       <div class="row">
@@ -69,7 +69,7 @@
       </div>
 
       <div style="margin-top:15px;">
-        <button type="submit" class="btn btn-primary">Generate Preview</button>
+        <button type="submit" class="btn btn-primary" id="generate_serial_preview_btn">Generate Preview</button>
       </div>
       {!! Form::close() !!}
     </div>
@@ -79,6 +79,15 @@
 
 @section('javascript')
 <script>
+
+$(window).on('pageshow load', function(){
+    $('#generate_serial_preview_btn').prop('disabled', false);
+});
+
+$(document).on('submit', '#serial_generate_form', function(){
+    $('#generate_serial_preview_btn').prop('disabled', false);
+});
+
 $(document).on('change', '#product_id', function(){
     $.get("{{action('ProductSerialNumberController@getProductVariations')}}", {product_id: $(this).val()}, function(resp){
         if(resp.success){

@@ -26,11 +26,16 @@
     @endcomponent
 
     @component('components.widget', ['class' => 'box-primary'])
+    {!! Form::open(['url' => action('ProductSerialNumberController@destroyBulk'), 'method' => 'post', 'id' => 'bulk_delete_serial_form']) !!}
+    <div style="margin-bottom:10px;">
+        <button type="button" class="btn btn-danger btn-sm" id="delete_selected_serials">Delete Selected (Available only)</button>
+    </div>
     <table class="table table-bordered table-striped">
-        <thead><tr><th>#</th><th>Product</th><th>Location</th><th>Serial Number</th><th>Status</th><th>Sold Invoice</th><th>Action</th></tr></thead>
+        <thead><tr><th><input type="checkbox" id="select_all_serials"></th><th>#</th><th>Product</th><th>Location</th><th>Serial Number</th><th>Status</th><th>Sold Invoice</th><th>Action</th></tr></thead>
         <tbody>
             @foreach($serial_numbers as $row)
             <tr>
+                <td>@if($row->status === 'available')<input type="checkbox" name="serial_ids[]" value="{{$row->id}}" class="serial-checkbox">@endif</td>
                 <td>{{$row->id}}</td>
                 <td>{{$row->product_name}} @if(!empty($row->variation_name)) - {{$row->variation_name}} @endif</td>
                 <td>{{$row->location_name}}</td>
@@ -51,6 +56,27 @@
         </tbody>
     </table>
     {{$serial_numbers->appends(request()->all())->links()}}
+    {!! Form::close() !!}
     @endcomponent
 </section>
+@endsection
+
+
+@section('javascript')
+<script>
+$(document).on('change', '#select_all_serials', function(){
+    $('.serial-checkbox').prop('checked', $(this).is(':checked'));
+});
+
+$(document).on('click', '#delete_selected_serials', function(){
+    if ($('.serial-checkbox:checked').length === 0) {
+        toastr.error('Please select available serial numbers to delete.');
+        return;
+    }
+
+    if (confirm('Are you sure?')) {
+        $('#bulk_delete_serial_form').submit();
+    }
+});
+</script>
 @endsection

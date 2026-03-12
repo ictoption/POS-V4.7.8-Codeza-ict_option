@@ -112,6 +112,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/products/serial-numbers/preview', 'ProductSerialNumberController@preview')->name('product-serial-numbers.preview');
     Route::post('/products/serial-numbers/save-generated', 'ProductSerialNumberController@saveGenerated')->name('product-serial-numbers.save-generated');
     Route::delete('/products/serial-numbers/{id}', 'ProductSerialNumberController@destroy')->name('product-serial-numbers.destroy');
+    Route::post('/products/serial-numbers/bulk-delete', 'ProductSerialNumberController@destroyBulk')->name('product-serial-numbers.bulk-delete');
     Route::get('/products/serial-numbers/print-preview', 'ProductSerialNumberController@printPreview')->name('product-serial-numbers.print-preview');
     Route::get('/products/serial-numbers/print/{id}', 'ProductSerialNumberController@print')->name('product-serial-numbers.print');
     Route::get('/products/serial-numbers/product-variations', 'ProductSerialNumberController@getProductVariations')->name('product-serial-numbers.product-variations');

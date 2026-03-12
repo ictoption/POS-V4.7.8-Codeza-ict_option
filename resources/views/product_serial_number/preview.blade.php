@@ -19,11 +19,18 @@
             </div>
 
             <div class="btn-group">
-                {!! Form::open(['url' => action('ProductSerialNumberController@saveGenerated'), 'method' => 'post', 'style' => 'display:inline-block;']) !!}
-                    <button type="submit" class="btn btn-success">Save to DB</button>
-                {!! Form::close() !!}
+                @if(empty($saved_generation_id))
+                    {!! Form::open(['url' => action('ProductSerialNumberController@saveGenerated'), 'method' => 'post', 'style' => 'display:inline-block;']) !!}
+                        <button type="submit" class="btn btn-success">Save to DB</button>
+                    {!! Form::close() !!}
+                @else
+                    <button type="button" class="btn btn-success" disabled>Saved</button>
+                @endif
 
-                <a href="{{ action('ProductSerialNumberController@printPreview') }}" class="btn btn-primary">Print</a>
+                <a href="{{ action('ProductSerialNumberController@printPreview') }}" class="btn btn-primary">Print Preview</a>
+                @if(!empty($saved_generation_id))
+                    <a href="{{ action('ProductSerialNumberController@print', [$saved_generation_id]) }}" class="btn btn-info">Print Saved</a>
+                @endif
                 <a href="{{ action('ProductSerialNumberController@create') }}" class="btn btn-default">Back</a>
             </div>
         </div>

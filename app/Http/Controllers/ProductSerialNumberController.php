@@ -150,6 +150,7 @@ class ProductSerialNumberController extends Controller
             'input' => $input,
             'serials' => $serials,
         ]);
+        $request->session()->forget('generated_serial_saved_generation_id');
 
         return redirect()->action('ProductSerialNumberController@preview');
     }
@@ -164,6 +165,7 @@ class ProductSerialNumberController extends Controller
         return view('product_serial_number.preview', [
             'input' => $preview['input'],
             'serials' => $preview['serials'],
+            'saved_generation_id' => $request->session()->get('generated_serial_saved_generation_id'),
         ]);
     }
 
@@ -235,9 +237,9 @@ class ProductSerialNumberController extends Controller
             $generation->save();
 
             DB::commit();
-            $request->session()->forget('generated_serial_preview');
+            $request->session()->put('generated_serial_saved_generation_id', $generation->id);
 
-            return redirect()->action('ProductSerialNumberController@index')
+            return redirect()->action('ProductSerialNumberController@preview')
                 ->with('status', ['success' => 1, 'msg' => 'Generated serial numbers saved successfully.']);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -291,6 +293,72 @@ class ProductSerialNumberController extends Controller
             ]);
         }
     }
+
+
+    public function destroyBulk(Request $request)
+    {
+        if (!auth()->user()->can('product.delete')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+        $serial_ids = array_values(array_unique(array_filter(array_map('intval', (array) $request->input('serial_ids', [])))));
+
+        if (empty($serial_ids)) {
+            return redirect()->back()->with('status', [
+                'success' => 0,
+                'msg' => 'Please select serial numbers to delete.',
+            ]);
+        }
+
+        DB::beginTransaction();
+        try {
+            $serials = ProductSerialNumber::where('business_id', $business_id)
+                ->whereIn('id', $serial_ids)
+                ->get();
+
+            if ($serials->count() !== count($serial_ids)) {
+                throw new \Exception('Invalid serial numbers selected.');
+            }
+
+            $not_available_count = $serials->where('status', '!=', 'available')->count();
+            if ($not_available_count > 0) {
+                return redirect()->back()->with('status', [
+                    'success' => 0,
+                    'msg' => 'Only available serial numbers can be deleted.',
+                ]);
+            }
+
+            $generation_ids = $serials->pluck('generation_id')->filter()->unique()->toArray();
+
+            ProductSerialNumber::where('business_id', $business_id)
+                ->whereIn('id', $serial_ids)
+                ->delete();
+
+            if (!empty($generation_ids)) {
+                foreach ($generation_ids as $generation_id) {
+                    $available_count = ProductSerialNumber::where('generation_id', $generation_id)->count();
+                    ProductSerialNumberGeneration::where('id', $generation_id)->update(['generated_count' => $available_count]);
+                }
+            }
+
+            DB::commit();
+
+            return redirect()->back()->with('status', [
+                'success' => 1,
+                'msg' => 'Selected serial numbers deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::emergency("File:" . $e->getFile(). "Line:" . $e->getLine(). "Message:" . $e->getMessage());
+
+            return redirect()->back()->with('status', [
+                'success' => 0,
+                'msg' => __('messages.something_went_wrong'),
+            ]);
+        }
+    }
+
 
     public function printPreview(Request $request)
     {

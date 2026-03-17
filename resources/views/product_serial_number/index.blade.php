@@ -20,7 +20,10 @@
             {!! Form::select('status', ['available' => 'Available', 'sold' => 'Sold', 'damaged' => 'Damaged'], request('status'), ['class' => 'form-control', 'placeholder' => 'All']) !!}
         </div>
         <div class="col-md-2" style="margin-top: 25px;"><button type="submit" class="btn btn-primary">Filter</button></div>
-        <div class="col-md-3 text-right" style="margin-top: 25px;"><a href="{{action('ProductSerialNumberController@create')}}" class="btn btn-success">Generate Serial Numbers</a></div>
+        <div class="col-md-5 text-right" style="margin-top: 25px;">
+            <a href="{{ action('ProductSerialNumberController@printReport', request()->all()) }}" class="btn btn-default" target="_blank">Print Report</a>
+            <a href="{{action('ProductSerialNumberController@create')}}" class="btn btn-success">Generate Serial Numbers</a>
+        </div>
     </div>
     {!! Form::close() !!}
     @endcomponent

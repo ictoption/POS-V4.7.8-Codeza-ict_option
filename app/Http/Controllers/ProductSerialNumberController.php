@@ -43,6 +43,43 @@ class ProductSerialNumberController extends Controller
         return view('product_serial_number.index', compact('serial_numbers', 'products', 'locations'));
     }
 
+    public function printReport(Request $request)
+    {
+        if (!auth()->user()->can('product.view')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+
+        $query = ProductSerialNumber::leftJoin('products as p', 'product_serial_numbers.product_id', '=', 'p.id')
+            ->leftJoin('variations as v', 'product_serial_numbers.variation_id', '=', 'v.id')
+            ->leftJoin('business_locations as bl', 'product_serial_numbers.location_id', '=', 'bl.id')
+            ->where('product_serial_numbers.business_id', $business_id)
+            ->select('product_serial_numbers.*', 'p.name as product_name', 'v.name as variation_name', 'bl.name as location_name');
+
+        if (!empty($request->product_id)) {
+            $query->where('product_serial_numbers.product_id', $request->product_id);
+        }
+        if (!empty($request->location_id)) {
+            $query->where('product_serial_numbers.location_id', $request->location_id);
+        }
+        if (!empty($request->status)) {
+            $query->where('product_serial_numbers.status', $request->status);
+        }
+
+        $serial_numbers = $query->orderBy('bl.name')->orderBy('product_serial_numbers.id')->get();
+        $grouped_by_location = $serial_numbers->groupBy(function ($row) {
+            return $row->location_name ?: 'N/A';
+        });
+
+        return view('product_serial_number.print_report', [
+            'serial_numbers' => $serial_numbers,
+            'grouped_by_location' => $grouped_by_location,
+            'filters' => $request->only(['product_id', 'location_id', 'status']),
+            'printed_at' => now(),
+        ]);
+    }
+
     public function create(Request $request)
     {
         if (!auth()->user()->can('product.create')) {

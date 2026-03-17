@@ -107,6 +107,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/products/get-product-to-edit/{product_id}', 'ProductController@getProductToEdit');
     
     Route::get('/products/serial-numbers', 'ProductSerialNumberController@index')->name('product-serial-numbers.index');
+    Route::get('/products/serial-numbers/print-report', 'ProductSerialNumberController@printReport')->name('product-serial-numbers.print-report');
     Route::get('/products/serial-numbers/create', 'ProductSerialNumberController@create')->name('product-serial-numbers.create');
     Route::post('/products/serial-numbers', 'ProductSerialNumberController@store')->name('product-serial-numbers.store');
     Route::get('/products/serial-numbers/preview', 'ProductSerialNumberController@preview')->name('product-serial-numbers.preview');
